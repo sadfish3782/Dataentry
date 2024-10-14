@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <title>CNP MACHINE WINDOW</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f2f2f2;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .form-container {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-heading {
+            font-size: 50px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #4CAF50;
+            text-align: center;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: normal;
+        }
+
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        input[type="number"], select {
+            width: calc(100% - 12px);
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .inline-label-input {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .inline-label-input label {
+            width: 60px;
+            margin-bottom: 0;
+        }
+
+        .inline-label-input input {
+            width: 200px;
+        }
+
+        .valid {
+            border-color: green;
+        }
+
+        .invalid {
+            border-color: red;
+        }
+
+        .red {
+            background-color: red; /* Change the button color to red */
+        }
+    </style>
+</head>
+<body>
+    <h1>CNP MACHINE WINDOW</h1>
+    <div class="form-grid">
+        {% for i in range(num_frames) %}
+        <form id="form{{ i + 1 }}" method="POST" action="/submit" onsubmit="return handleSubmit(event, {{ i }});">
+            <div class="form-container">
+                <div class="form-heading">CNC {{ i + 1 }}</div>
+                <label for="employee{{ i }}">Select Employee:</label>
+                <select id="employee{{ i }}" name="Employee_name">
+                    <option value="Rahul">Rahul</option>
+                    <option value="Rohit">Rohit</option>
+                    <option value="Shiva">Shiva</option>
+                </select>
+
+                <label for="part{{ i }}">Select Part:</label>
+                <select id="part{{ i }}" name="Part_name">
+                    <option value="CSC">CSC</option>
+                    <option value="Flange">Flange</option>
+                    <option value="Mini Cylinder">Mini Cylinder</option>
+                </select>
+
+                <label for="process{{ i }}">Select Process:</label>
+                <select id="process{{ i }}" name="Process_Name" onchange="addFields({{ i }});">
+                    <option value="">-- Select Process --</option>
+                    <option value="Drilling">Drilling</option>
+                    <option value="Facing">Facing</option>
+                    <option value="Leak">Leak</option>
+                    <option value="Packaging">Packaging</option>
+                </select>
+
+                <div id="additional-fields{{ i }}"></div>
+
+                <button type="submit">Submit CNP {{ i + 1 }}</button>
+            </div>
+        </form>
+        {% endfor %}
+    </div>
+
+    <button class="navigation-button" onclick="window.location.href='/index'">Go to SPM Machine Window</button>
+    
+    <script>
+        function handleSubmit(event, formIndex) {
+            event.preventDefault(); // Prevent default form submission
+
+            const minutes = prompt("Enter the number of minutes:");
+            if (minutes !== null) {
+                const button = event.target.querySelector('button');
+                const duration = parseInt(minutes) * 60 * 1000; // Convert minutes to milliseconds
+
+                // Change button color to red immediately after clicking submit
+                button.classList.add('red');
+
+                // AJAX request to submit the form data
+                const formData = new FormData(event.target);
+                formData.append('index', formIndex); // Append index to the form data
+
+                fetch(event.target.action, {
+                    method: event.target.method,
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    // Clear additional fields immediately after successful submission
+                    resetAdditionalFields(formIndex);
+                    return response.json(); // Assuming your backend returns JSON
+                })
+                .then(data => {
+                    // Handle the response data if needed
+                    console.log(data); // Log the response for debugging
+                })
+                .catch(error => {
+                    console.error('There was a problem with the fetch operation:', error);
+                });
+
+                // Start a timer to revert the button color after the specified duration
+                setTimeout(() => {
+                    button.classList.remove('red'); // Revert button color after timer
+                }, duration);
+            }
+        }
+
+        // Function to reset additional fields
+        function resetAdditionalFields(formIndex) {
+            const additionalFieldsDiv = document.getElementById('additional-fields' + formIndex);
+            if (additionalFieldsDiv) {
+                additionalFieldsDiv.innerHTML = ''; // Clear any additional fields added
+            }
+        }
+
+        // Function to move to the next input field on Enter key press
+        function handleEnterKey(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault(); // Prevent form submission
+                const inputs = Array.from(event.target.form.elements);
+                const currentIndex = inputs.indexOf(event.target);
+                
+                // Move to the next input field if there is one
+                const nextInput = inputs[currentIndex + 1];
+                if (nextInput) {
+                    nextInput.focus();
+                }
+            }
+        }
+
+        // Function to change input field color based on OK/NOK selection
+        function updateInputColor(inputElement) {
+            if (inputElement.value === "true") { // OK
+                inputElement.classList.remove('invalid');
+                inputElement.classList.add('valid');
+            } else if (inputElement.value === "false") { // NOK
+                inputElement.classList.remove('valid');
+                inputElement.classList.add('invalid');
+            } else {
+                inputElement.classList.remove('valid', 'invalid'); // Reset on N/A or empty
+            }
+        }
+
+        // Function to validate numeric input
+        function validateNumericInput(inputElement, min, max) {
+            const value = parseFloat(inputElement.value);
+            if (isNaN(value)) {
+                inputElement.classList.remove('valid', 'invalid'); // Reset if not a number
+            } else if (value < min || value > max) {
+                inputElement.classList.remove('valid');
+                inputElement.classList.add('invalid'); // Out of range
+            } else {
+                inputElement.classList.remove('invalid');
+                inputElement.classList.add('valid'); // In range
+            }
+        }
+
+        // Add fields based on process selection
+        window.addFields = function(formIndex) {
+            const additionalFieldsDiv = document.getElementById('additional-fields' + formIndex);
+            additionalFieldsDiv.innerHTML = ''; 
+
+            const processSelect = document.getElementById('process' + formIndex);
+            const selectedProcess = processSelect.value;
+
+            if (selectedProcess === 'Drilling') {
+                additionalFieldsDiv.innerHTML = `
+                    <label for="diameter${formIndex}">Diameter (5.25-5.55):</label>
+                    <input type="number" id="diameter${formIndex}" name="Diameter" min="5.25" max="5.55" step="0.01" placeholder="Enter Diameter" onkeydown="handleEnterKey(event)" onblur="validateNumericInput(this, 5.25, 5.55)">
+
+                     
+
+                    <label for="cd${formIndex}">C.D (37.21-37.41):</label>
+                    <input type="number" id="cd${formIndex}" name="C.D" min="37.21" max="37.41" step="0.01" placeholder="Enter C.D" onkeydown="handleEnterKey(event)" onblur="validateNumericInput(this, 37.21, 37.41)">
+                `;
+
+            } else if (selectedProcess === 'Facing') {
+                additionalFieldsDiv.innerHTML = `
+                    <label for="height${formIndex}">Height (10.05-10.15):</label>
+                    <input type="number" id="height${formIndex}" name="Height" min="10.05" max="10.15" step="0.01" placeholder="Enter Height" onkeydown="handleEnterKey(event)" onblur="validateNumericInput(this, 10.05, 10.15)">
+                    <label for="visualinspection${formIndex}">Visual Inspection (No Burrs):</label>
+                    <select id="visualinspection${formIndex}" name="Visual_Inspection" onchange="updateInputColor(this); handleEnterKey(event)">
+                        <option value="">N/A</option>
+                        <option value="true">OK</option>
+                        <option value="false">NOK</option>
+                    </select>
+
+
+                    <label for="width${formIndex}">Width (22.5-22.6):</label>
+                    <input type="number" id="width${formIndex}" name="Width" min="22.5" max="22.6" step="0.01" placeholder="Enter Width" onkeydown="handleEnterKey(event)" onblur="validateNumericInput(this, 22.5, 22.6)">
+                `;
+
+            } else if (selectedProcess === 'Leak') {
+                additionalFieldsDiv.innerHTML = `
+                    <label for="noleakage${formIndex}">No Leakage at 160 psi(15 secs):</label>
+                    <select id="noleakage${formIndex}" name="No Leakage at 160 psi(15 secs)" onchange="updateInputColor(this); handleEnterKey(event)">
+                        <option value="">N/A</option>
+                        <option value="true">OK</option>
+                        <option value="false">NOK</option>
+                    </select>  
+                    
+                    <label for="inspection${formIndex}">Inspection with Master Sample(Visual):</label>
+                    <select id="inspection${formIndex}" name="Inspection with Master Sample(Visual)" onchange="updateInputColor(this); handleEnterKey(event)">
+                        <option value="">N/A</option>
+                        <option value="true">OK</option>
+                        <option value="false">NOK</option>
+                    </select>
+
+
+`;
+
+            } else if (selectedProcess === 'Packaging') {
+                additionalFieldsDiv.innerHTML = `
+                    <label for="visualinspection${formIndex}">Visual Inspection(No Burrs):</label>
+                    <select id="visualinspection${formIndex}" name="Visual [No Burrs]" onchange="updateInputColor(this); handleEnterKey(event)">
+                        <option value="">N/A</option>
+                        <option value="true">OK</option>
+                        <option value="false">NOK</option>
+                    </select>
+
+                    <label for="diameter${formIndex}">Diameter (5.25-5.55):</label>
+                    <input type="number" id="diameter${formIndex}" name="Diameter" min="5.25" max="5.55" step="0.01" placeholder="Enter Diameter" onkeydown="handleEnterKey(event)" onblur="validateNumericInput(this, 5.25, 5.55)">
+
+                    <label for="specifynosoftypeofdefects${formIndex}">Specify No. of type of Defects:</label>
+                    <div class="inline-label-input">
+                    <label for="Burrs${formIndex}">Burrs:</label>
+                    <input type="number" id="burrs${formIndex}" name="Burrs" min="0" max="100" step="1" placeholder="Enter No. of Burrs" onkeydown="handleEnterKey(event)" onblur="validateNumericInput(this, 1, 100)">
+                    </div>
+                
+                    <div class="inline-label-input">
+                    <label for="Blowholes${formIndex}">Blow_Holes:</label>
+                    <input type="number" id="Blowholes${formIndex}" name="Blowholes" min="0" max="100" step="1" placeholder="Enter No. of Blowholes" onkeydown="handleEnterKey(event)" onblur="validateNumericInput(this, 1, 100)">
+                    </div>
+
+                    <div class="inline-label-input">
+                    <label for="M/cdefect${formIndex}">M/c Defect:</label>
+                    <input type="number" id="M/cdefect${formIndex}" name="M/cdefect" min="0" max="100" step="1" placeholder="Enter No. of M/cdefect" onkeydown="handleEnterKey(event)" onblur="validateNumericInput(this, 1, 100)">
+                    </div>
+
+                    <div class="inline-label-input">
+                    <label for="castdefect${formIndex}">Cast Defect:</label>
+                    <input type="number" id="castdefect${formIndex}" name="Castdefect" min="0" max="100" step="1" placeholder="Enter No. of castdefect" onkeydown="handleEnterKey(event)" onblur="validateNumericInput(this, 1, 100)">
+                    </div>
+
+                    <div class="inline-label-input">
+                    <label for="others${formIndex}">Others:</label>
+                    <input type="number" id="others${formIndex}" name="Others" min="0" max="100" step="1" placeholder="Enter No. of others" onkeydown="handleEnterKey(event)" onblur="validateNumericInput(this, 1, 100)">
+                    </div>
+                `;
+            }
+};
+    </script>
+</body>
+</html>
